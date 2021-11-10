@@ -53,22 +53,25 @@ private extension AppVersionValidator {
                           onlineVersion: VersionNumber,
                           completion: @escaping (Error?) -> Void) {
         
-        let deviceNum = getNumberToValidate(from: deviceVersion)
-        let onlineNum = getNumberToValidate(from: onlineVersion)
-        
-        guard deviceNum >= onlineNum else {
+        if updateRequired(deviceVersion: deviceVersion, onlineVersion: onlineVersion) {
+            
             return completion(UpdateError.updateRequired)
         }
         
         completion(nil)
     }
     
-    func getNumberToValidate(from version: VersionNumber) -> Int {
+    func updateRequired(deviceVersion: VersionNumber,
+                        onlineVersion: VersionNumber) -> Bool {
+        
+        let majorUpdate = deviceVersion.majorNum < onlineVersion.majorNum
+        let minorUpdate = deviceVersion.minorNum < onlineVersion.minorNum
+        let patchUpdate = deviceVersion.patchNum < onlineVersion.patchNum
         
         switch versionNumberType {
-        case .major: return version.majorNum
-        case .minor: return version.minorNum
-        case .patch: return version.patchNum
+        case .major: return majorUpdate
+        case .minor: return majorUpdate || minorUpdate
+        case .patch: return majorUpdate || minorUpdate || patchUpdate
         }
     }
 }
