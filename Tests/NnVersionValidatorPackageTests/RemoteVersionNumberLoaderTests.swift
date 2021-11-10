@@ -8,13 +8,11 @@
 import XCTest
 import NnVersionValidatorPackage
 
-class AppVersionValidator {
+class RemoteVersionNumberLoader {
     
     // MARK: - Properties
-    let versionURL: URL
+    let url: URL
     let remote: HTTPClient
-    
-    typealias Result = Swift.Result<VersionNumber, Error>
     
     enum Error: Swift.Error {
         case noConnection
@@ -23,19 +21,29 @@ class AppVersionValidator {
     
     
     // MARK: - Init
-    init(versionURL: URL,
-         remote: HTTPClient) {
-        
-        self.versionURL = versionURL
+    init(url: URL, remote: HTTPClient) {
+        self.url = url
         self.remote = remote
-    }
-    
-    func validateAppVersion(completion: @escaping (Error?) -> Void) {
-        
     }
 }
 
-class AppVersionValidatorTests: XCTestCase {
+
+// MARK: - Loader
+extension RemoteVersionNumberLoader: VersionNumberLoader {
+    
+    func load(completion: @escaping (VersionNumberLoader.Result) -> Void) {
+        
+        remote.get(from: url) { result in
+            switch result {
+            case .success: break
+            case .failure:
+                completion(.failure(Error.noConnection))
+            }
+        }
+    }
+}
+
+class RemoteVersionNumberLoaderTests: XCTestCase {
     
     func test_init_doesNotRequestDataFromURL() {
         let (_, remote) = makeSUT()
@@ -46,7 +54,7 @@ class AppVersionValidatorTests: XCTestCase {
     func test_validateAppVersion_noConnectionError() {
         let (sut, remote) = makeSUT()
 
-        expect(sut, toCompleteWith: .noConnection) {
+        expect(sut, toCompleteWith: .failure(.noConnection)) {
             let error = NSError(domain: "Test", code: 0)
             remote.complete(with: error)
         }
@@ -55,15 +63,15 @@ class AppVersionValidatorTests: XCTestCase {
 
 
 // MARK: - SUT
-extension AppVersionValidatorTests {
+extension RemoteVersionNumberLoaderTests {
     
     func makeSUT(url: URL = URL(string: "https://a-url.com")!,
                  file: StaticString = #filePath,
-                 line: UInt = #line) -> (sut: AppVersionValidator,
+                 line: UInt = #line) -> (sut: RemoteVersionNumberLoader,
                                          remote: HTTPClientSpy) {
         let remote = HTTPClientSpy()
-        let sut = AppVersionValidator(versionURL: url,
-                                      remote: remote)
+        let sut = RemoteVersionNumberLoader(url: url,
+                                            remote: remote)
         
         trackForMemoryLeaks(sut, file: file, line: line)
         trackForMemoryLeaks(remote, file: file, line: line)
@@ -71,30 +79,32 @@ extension AppVersionValidatorTests {
         return (sut, remote)
     }
     
-    func expect(_ sut: AppVersionValidator,
-                toCompleteWith expectedResult: AppVersionValidator.Error?,
+    func expect(_ sut: RemoteVersionNumberLoader,
+                toCompleteWith expectedResult: Result<VersionNumber, RemoteVersionNumberLoader.Error>,
                 when action: () -> Void,
                 file: StaticString = #filePath, line: UInt = #line) {
         
         let exp = expectation(description: "validate version number")
 
-        sut.validateAppVersion { recievedError in
-            
+        sut.load { receivedResult in
+            switch (receivedResult, expectedResult) {
+                
+            case let (.success(receivedItems), .success(expectedItems)):
+                XCTAssertEqual(receivedItems,
+                               expectedItems,
+                               file: file, line: line)
+
+            case let (.failure(receivedError as RemoteVersionNumberLoader.Error), .failure(expectedError)):
+                
+                XCTAssertEqual(receivedError, expectedError,
+                               file: file, line: line)
+
+            default:
+                XCTFail("Expected result \(expectedResult) got \(receivedResult) instead", file: file, line: line)
+            }
+
+            exp.fulfill()
         }
-//        sut.load { receivedResult in
-//            switch (receivedResult, expectedResult) {
-//            case let (.success(receivedItems), .success(expectedItems)):
-//                XCTAssertEqual(receivedItems, expectedItems, file: file, line: line)
-//
-//            case let (.failure(receivedError as RemoteFeedLoader.Error), .failure(expectedError)):
-//                XCTAssertEqual(receivedError, expectedError, file: file, line: line)
-//
-//            default:
-//                XCTFail("Expected result \(expectedResult) got \(receivedResult) instead", file: file, line: line)
-//            }
-//
-//            exp.fulfill()
-//        }
 
         action()
 
