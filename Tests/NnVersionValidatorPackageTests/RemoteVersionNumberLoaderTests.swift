@@ -8,41 +8,6 @@
 import XCTest
 import NnVersionValidatorPackage
 
-class RemoteVersionNumberLoader {
-    
-    // MARK: - Properties
-    let url: URL
-    let remote: HTTPClient
-    
-    enum Error: Swift.Error {
-        case noConnection
-        case invalidData
-    }
-    
-    
-    // MARK: - Init
-    init(url: URL, remote: HTTPClient) {
-        self.url = url
-        self.remote = remote
-    }
-}
-
-
-// MARK: - Loader
-extension RemoteVersionNumberLoader: VersionNumberLoader {
-    
-    func load(completion: @escaping (VersionNumberLoader.Result) -> Void) {
-        
-        remote.get(from: url) { result in
-            switch result {
-            case .success: break
-            case .failure:
-                completion(.failure(Error.noConnection))
-            }
-        }
-    }
-}
-
 class RemoteVersionNumberLoaderTests: XCTestCase {
     
     func test_init_doesNotRequestDataFromURL() {
