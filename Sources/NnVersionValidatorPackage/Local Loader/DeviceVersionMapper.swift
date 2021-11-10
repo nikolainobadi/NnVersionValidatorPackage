@@ -25,10 +25,6 @@ final class DeviceVersionMapper {
 // MARK: - Private Methods
 private extension DeviceVersionMapper {
     
-    enum VersionNumberType: Int {
-        case major, minor, patch
-    }
-    
     static func removeDecimals(from string: String) -> [String] {
         string.components(separatedBy: ".")
     }
