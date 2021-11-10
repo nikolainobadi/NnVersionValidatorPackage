@@ -10,18 +10,55 @@ import NnVersionValidatorPackage
 
 class RemoteVersionNumberLoaderTests: XCTestCase {
     
+    // MARK: - Init Test
     func test_init_doesNotRequestDataFromURL() {
         let (_, remote) = makeSUT()
 
         XCTAssertTrue(remote.requestedURLs.isEmpty)
     }
     
-    func test_validateAppVersion_noConnectionError() {
+    
+    // MARK: - Errors
+    func test_load_noConnectionError() {
         let (sut, remote) = makeSUT()
 
         expect(sut, toCompleteWith: .failure(.noConnection)) {
             let error = NSError(domain: "Test", code: 0)
             remote.complete(with: error)
+        }
+    }
+    
+    func test_load_invalidDataWhenResponseNot200() {
+        let (sut, remote) = makeSUT()
+
+        let samples = [199, 201, 300, 400, 500]
+
+        samples.enumerated().forEach { index, code in
+            expect(sut, toCompleteWith: .failure(.invalidData)) {
+                remote.complete(withStatusCode: code,
+                                data: makeJSON(),
+                                at: index)
+            }
+        }
+    }
+    
+    func test_load_invalidDataWithInvalidJSON() {
+        let (sut, client) = makeSUT()
+
+        expect(sut, toCompleteWith: .failure(.invalidData)) {
+            let invalidJSON = Data("invalid json".utf8)
+            client.complete(withStatusCode: 200, data: invalidJSON)
+        }
+    }
+    
+    
+    // MARK: - Success
+    func test_load_success() {
+        let (sut, client) = makeSUT()
+        let versionNumber = makeVersionNumber()
+        
+        expect(sut, toCompleteWith: .success(versionNumber)) {
+            client.complete(withStatusCode: 200, data: makeJSON())
         }
     }
 }
@@ -42,6 +79,21 @@ extension RemoteVersionNumberLoaderTests {
         trackForMemoryLeaks(remote, file: file, line: line)
         
         return (sut, remote)
+    }
+}
+
+
+// MARK: - Helper Methods
+extension RemoteVersionNumberLoaderTests {
+    
+    func makeVersionNumber() -> VersionNumber {
+        VersionNumber(majorNum: 4, minorNum: 0, patchNum: 5)
+    }
+    
+    func makeJSON() -> Data {
+        let json = ["majorNum": 4, "minorNum": 0, "patchNum": 5]
+        
+        return try! JSONSerialization.data(withJSONObject: json)
     }
     
     func expect(_ sut: RemoteVersionNumberLoader,
