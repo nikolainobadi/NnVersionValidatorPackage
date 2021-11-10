@@ -8,14 +8,6 @@
 import XCTest
 import NnVersionValidatorPackage
 
-protocol HTTPClient {
-    typealias Result = Swift.Result<(Data, HTTPURLResponse), Error>
-
-    func get(from url: URL, completion: @escaping (Result) -> Void)
-}
-
-
-
 class AppVersionValidator {
     
     // MARK: - Properties
@@ -25,7 +17,7 @@ class AppVersionValidator {
     typealias Result = Swift.Result<VersionNumber, Error>
     
     enum Error: Swift.Error {
-        case connectivity
+        case noConnection
         case invalidData
     }
     
@@ -40,7 +32,6 @@ class AppVersionValidator {
     
     func validateAppVersion(completion: @escaping (Error?) -> Void) {
         
-        
     }
 }
 
@@ -50,6 +41,15 @@ class AppVersionValidatorTests: XCTestCase {
         let (_, remote) = makeSUT()
 
         XCTAssertTrue(remote.requestedURLs.isEmpty)
+    }
+    
+    func test_validateAppVersion_noConnectionError() {
+        let (sut, remote) = makeSUT()
+
+        expect(sut, toCompleteWith: .noConnection) {
+            let error = NSError(domain: "Test", code: 0)
+            remote.complete(with: error)
+        }
     }
 }
 
@@ -69,6 +69,36 @@ extension AppVersionValidatorTests {
         trackForMemoryLeaks(remote, file: file, line: line)
         
         return (sut, remote)
+    }
+    
+    func expect(_ sut: AppVersionValidator,
+                toCompleteWith expectedResult: AppVersionValidator.Error?,
+                when action: () -> Void,
+                file: StaticString = #filePath, line: UInt = #line) {
+        
+        let exp = expectation(description: "validate version number")
+
+        sut.validateAppVersion { recievedError in
+            
+        }
+//        sut.load { receivedResult in
+//            switch (receivedResult, expectedResult) {
+//            case let (.success(receivedItems), .success(expectedItems)):
+//                XCTAssertEqual(receivedItems, expectedItems, file: file, line: line)
+//
+//            case let (.failure(receivedError as RemoteFeedLoader.Error), .failure(expectedError)):
+//                XCTAssertEqual(receivedError, expectedError, file: file, line: line)
+//
+//            default:
+//                XCTFail("Expected result \(expectedResult) got \(receivedResult) instead", file: file, line: line)
+//            }
+//
+//            exp.fulfill()
+//        }
+
+        action()
+
+        waitForExpectations(timeout: 0.1)
     }
     
     class HTTPClientSpy: HTTPClient {
