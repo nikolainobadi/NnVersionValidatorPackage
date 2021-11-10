@@ -14,7 +14,9 @@ public final class LocalVersionNumberLoader {
     private let versionStringId = "CFBundleShortVersionString"
     
     public enum Error: Swift.Error {
+        case missingVersionId
         case invalidData
+        case missingNumber
     }
     
     
@@ -32,7 +34,7 @@ extension LocalVersionNumberLoader: VersionNumberLoader {
         
         guard
             let deviceVersionString = infoDictonary?[versionStringId] as? String
-        else { return completion(.failure(Error.invalidData)) }
+        else { return completion(.failure(Error.missingVersionId)) }
         
         completion(DeviceVersionMapper.map(deviceVersionString))
     }
@@ -43,14 +45,12 @@ final class DeviceVersionMapper {
 
     private init() {}
 
-    static func map(_ versionString: String?) -> VersionNumberLoader.Result {
+    static func map(_ versionString: String) -> VersionNumberLoader.Result {
+        let noDecimals = removeDecimals(from: versionString)
+        let array = noDecimals.compactMap { Int($0) }
         
-        guard
-            let versionString = versionString,
-            let array = mapToInts(versionString),
-            array.count == versionString.count
-        else {
-            return .failure(LocalVersionNumberLoader.Error.invalidData)
+        guard array.count == noDecimals.count else {
+            return .failure(LocalVersionNumberLoader.Error.missingNumber)
         }
         
         return .success(DeviceVersionMapper.makeVersionNumber(from: array))
@@ -65,16 +65,18 @@ private extension DeviceVersionMapper {
         case major, minor, patch
     }
     
-    static func mapToInts(_ versionString: String) -> [Int]? {
-        versionString
-            .components(separatedBy: ".")
-            .compactMap { Int($0) }
+    static func removeDecimals(from string: String) -> [String] {
+        string.components(separatedBy: ".")
+    }
+    
+    static func mapToInts(_ versionString: [String]) -> [Int] {
+        versionString.compactMap { Int($0) }
     }
     
     static func makeVersionNumber(from array: [Int]) -> VersionNumber {
         VersionNumber(majorNum: getNumber(.major, in: array),
                       minorNum: getNumber(.minor, in: array),
-                      patchNum: getNumber(.pat, in: array))
+                      patchNum: getNumber(.patch, in: array))
     }
     
     static func getNumber(_ numtype: VersionNumberType,
