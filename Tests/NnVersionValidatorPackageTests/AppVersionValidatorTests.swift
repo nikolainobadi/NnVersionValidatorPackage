@@ -53,7 +53,11 @@ class AppVersionValidator {
 
 class AppVersionValidatorTests: XCTestCase {
     
-    
+    func test_init_doesNotRequestDataFromURL() {
+        let (_, remote) = makeSUT()
+
+        XCTAssertTrue(remote.requestedURLs.isEmpty)
+    }
 }
 
 
@@ -67,6 +71,10 @@ extension AppVersionValidatorTests {
         let remote = HTTPClientSpy()
         let sut = AppVersionValidator(versionURL: url,
                                       remote: remote)
+        
+        trackForMemoryLeaks(sut, file: file, line: line)
+        trackForMemoryLeaks(remote, file: file, line: line)
+        
         return (sut, remote)
     }
     
