@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import NnVersionValidatorPackage
 
 protocol HTTPClient {
     typealias Result = Swift.Result<(Data, HTTPURLResponse), Error>
@@ -13,15 +14,7 @@ protocol HTTPClient {
     func get(from url: URL, completion: @escaping (Result) -> Void)
 }
 
-struct VersionNumber: Decodable {
-    let majorNum: Int
-    let minorNum: Int
-    let patchNum: Int
-    
-    var fullVersionNumber: String {
-        "\(majorNum).\(minorNum).\(patchNum)"
-    }
-}
+
 
 class AppVersionValidator {
     
