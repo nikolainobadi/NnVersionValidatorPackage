@@ -8,8 +8,7 @@
 public final class AppVersionValidator {
     
     // MARK: - Properties
-    private let local: VersionNumberLoader
-    private let remote: VersionNumberLoader
+    private let loader: VersionLoaderManager
     
     private var versionNumberType: VersionNumberType
     
@@ -19,12 +18,10 @@ public final class AppVersionValidator {
     
     
     // MARK: - Init
-    public init(local: VersionNumberLoader,
-                remote: VersionNumberLoader,
+    public init(loader: VersionLoaderManager,
                 versionNumberType: VersionNumberType = .major) {
         
-        self.local = local
-        self.remote = remote
+        self.loader = loader
         self.versionNumberType = versionNumberType
     }
 }
@@ -34,7 +31,7 @@ public final class AppVersionValidator {
 extension AppVersionValidator {
     
     public func checkAppVersion(completion: @escaping (Error?) -> Void) {
-        fetchAppVersions { [weak self] result in
+        loader.fetchAppVersions { [weak self] result in
             
             switch result {
             case .success(let (deviceVersion, onlineVersion)):
@@ -51,37 +48,6 @@ extension AppVersionValidator {
 
 // MARK: - Private Methods
 private extension AppVersionValidator {
-    
-    typealias Result = Swift.Result<(deviceVersion: VersionNumber, onlineVersion: VersionNumber), Error>
-    
-    func fetchAppVersions(completion: @escaping (Result) -> Void) {
-        remote.load { [weak self] result in
-            self?.fetchDeviceVersion(result, completion: completion)
-        }
-    }
-    
-    func fetchDeviceVersion(_ result: Swift.Result<VersionNumber, Error>, completion: @escaping (Result) -> Void) {
-        
-        switch result {
-        case .success(let onlineVersion):
-            handleFinalFetchResult(onlineVersion, completion)
-        case .failure(let error):
-            completion(.failure(error))
-        }
-    }
-    
-    func handleFinalFetchResult(_ onlineVersion: (VersionNumber),
-                           _ completion: @escaping (Result) -> Void) {
-        
-        local.load(completion: { localResult in
-            switch localResult {
-            case .success(let deviceVersion):
-                completion(.success((deviceVersion, onlineVersion)))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        })
-    }
     
     func validateVersions(deviceVersion: VersionNumber,
                           onlineVersion: VersionNumber,
