@@ -34,10 +34,13 @@ extension RemoteVersionNumberLoader: VersionNumberLoader {
         
         remote.get(from: url) { result in
             switch result {
-            case .success: break
+            case .success(let (data, response)): break
             case .failure:
                 completion(.failure(Error.noConnection))
             }
         }
     }
 }
+
+
+
