@@ -13,7 +13,7 @@ public final class AppVersionValidator {
     private var versionNumberType: VersionNumberType
     
     public enum UpdateError: Swift.Error {
-        case updateRequired
+        case noConnection
     }
     
     
@@ -30,7 +30,8 @@ public final class AppVersionValidator {
 // MARK: - Public Methods
 extension AppVersionValidator {
     
-    public func checkAppVersion(completion: @escaping (Error?) -> Void) {
+    public func checkIfVersionUpdateIsRequired(completion: @escaping (Result<Bool, Error>) -> Void) {
+        
         loader.fetchAppVersions { [weak self] result in
             
             switch result {
@@ -38,8 +39,8 @@ extension AppVersionValidator {
                 self?.validateVersions(deviceVersion: deviceVersion,
                                        onlineVersion: onlineVersion,
                                        completion: completion)
-            case .failure(let error):
-                completion(error)
+            case .failure:
+                completion(.failure(UpdateError.noConnection))
             }
         }
     }
@@ -51,14 +52,11 @@ private extension AppVersionValidator {
     
     func validateVersions(deviceVersion: VersionNumber,
                           onlineVersion: VersionNumber,
-                          completion: @escaping (Error?) -> Void) {
-        
-        if updateRequired(deviceVersion: deviceVersion, onlineVersion: onlineVersion) {
-            
-            return completion(UpdateError.updateRequired)
-        }
-        
-        completion(nil)
+                          completion: @escaping (Result<Bool, Error>) -> Void) {
+        completion(.success(
+            updateRequired(deviceVersion: deviceVersion,
+                           onlineVersion: onlineVersion))
+        )
     }
     
     func updateRequired(deviceVersion: VersionNumber,

@@ -14,7 +14,7 @@ class AppVersionValidatorTests: XCTestCase {
     func test_checkAppVersion_noUpdateRequired_allNumbersMatch() {
         let (sut, local, remote) = makeSUT()
         
-        expect(sut, toCompleteWith: nil) {
+        expect(sut, toCompleteWith: .success(false)) {
             remote.complete(with: .success(makeVersionNumber()))
             local.complete(with: .success(makeVersionNumber()))
         }
@@ -25,7 +25,7 @@ class AppVersionValidatorTests: XCTestCase {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(minor: 5)
         
-        expect(sut, toCompleteWith: nil) {
+        expect(sut, toCompleteWith: .success(false)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -36,7 +36,7 @@ class AppVersionValidatorTests: XCTestCase {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(patch: 5)
         
-        expect(sut, toCompleteWith: nil) {
+        expect(sut, toCompleteWith: .success(false)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -53,7 +53,7 @@ extension AppVersionValidatorTests {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(major: 5)
         
-        expect(sut, toCompleteWith: .updateRequired) {
+        expect(sut, toCompleteWith: .success(true)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -65,7 +65,7 @@ extension AppVersionValidatorTests {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(major: 5)
         
-        expect(sut, toCompleteWith: .updateRequired) {
+        expect(sut, toCompleteWith: .success(true)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -77,7 +77,7 @@ extension AppVersionValidatorTests {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(minor: 5)
         
-        expect(sut, toCompleteWith: .updateRequired) {
+        expect(sut, toCompleteWith: .success(true)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -89,7 +89,7 @@ extension AppVersionValidatorTests {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(major: 5)
         
-        expect(sut, toCompleteWith: .updateRequired) {
+        expect(sut, toCompleteWith: .success(true)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -101,7 +101,7 @@ extension AppVersionValidatorTests {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(minor: 5)
         
-        expect(sut, toCompleteWith: .updateRequired) {
+        expect(sut, toCompleteWith: .success(true)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -113,7 +113,7 @@ extension AppVersionValidatorTests {
         let localVersion = makeVersionNumber()
         let remoteVersion = makeVersionNumber(patch: 5)
         
-        expect(sut, toCompleteWith: .updateRequired) {
+        expect(sut, toCompleteWith: .success(true)) {
             remote.complete(with: .success(remoteVersion))
             local.complete(with: .success(localVersion))
         }
@@ -127,7 +127,7 @@ extension AppVersionValidatorTests {
     func test_checkAppVersion_localError() {
         let (sut, local, remote) = makeSUT()
         
-        expectError(sut) {
+        expect(sut, toCompleteWith: .failure(.noConnection)) {
             remote.complete(with: .success(makeVersionNumber()))
             local.complete(with: .failure(LocalVersionNumberLoader.Error.missingNumber))
         }
@@ -136,7 +136,7 @@ extension AppVersionValidatorTests {
     func test_checkAppVersion_remoteError() {
         let (sut, local, remote) = makeSUT()
         
-        expectError(sut) {
+        expect(sut, toCompleteWith: .failure(.noConnection)) {
             remote.complete(with: .failure(RemoteVersionNumberLoader.Error.noConnection))
             local.complete(with: .success(makeVersionNumber()))
         }
@@ -169,14 +169,29 @@ extension AppVersionValidatorTests {
     }
     
     func expect(_ sut: AppVersionValidator,
-                toCompleteWith expectedResult: AppVersionValidator.UpdateError?,
+                toCompleteWith expectedResult: Result<Bool, AppVersionValidator.UpdateError>,
                 when action: () -> Void,
                 file: StaticString = #filePath, line: UInt = #line) {
         
         let exp = expectation(description: "validate version number")
 
-        sut.checkAppVersion { recievedError in
-            XCTAssertEqual(recievedError as? AppVersionValidator.UpdateError, expectedResult)
+        sut.checkIfVersionUpdateIsRequired { receivedResult in
+            
+            switch (receivedResult, expectedResult) {
+                
+            case let (.success(receivedItems), .success(expectedItems)):
+                XCTAssertEqual(receivedItems,
+                               expectedItems,
+                               file: file, line: line)
+
+            case let (.failure(receivedError as AppVersionValidator.UpdateError), .failure(expectedError)):
+                
+                XCTAssertEqual(receivedError, expectedError,
+                               file: file, line: line)
+
+            default:
+                XCTFail("Expected result \(expectedResult) got \(receivedResult) instead", file: file, line: line)
+            }
             
             exp.fulfill()
         }
@@ -192,7 +207,7 @@ extension AppVersionValidatorTests {
         
         let exp = expectation(description: "validate version number")
 
-        sut.checkAppVersion { recievedError in
+        sut.checkIfVersionUpdateIsRequired { recievedError in
             XCTAssertNotNil(recievedError); exp.fulfill()
         }
 
