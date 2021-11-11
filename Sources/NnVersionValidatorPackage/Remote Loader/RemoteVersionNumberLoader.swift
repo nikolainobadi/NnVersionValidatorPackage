@@ -11,7 +11,7 @@ public final class RemoteVersionNumberLoader {
     
     // MARK: - Properties
     private let url: URL
-    private let remote: HTTPClient
+    private let remote: VersionFetcher
     
     public enum Error: Swift.Error {
         case noConnection
@@ -20,7 +20,7 @@ public final class RemoteVersionNumberLoader {
     
     
     // MARK: - Init
-    public init(url: URL, remote: HTTPClient) {
+    public init(url: URL, remote: VersionFetcher) {
         self.url = url
         self.remote = remote
     }

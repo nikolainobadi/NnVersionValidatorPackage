@@ -56,8 +56,8 @@ extension RemoteVersionNumberLoaderTests {
     func makeSUT(url: URL = URL(string: "https://a-url.com")!,
                  file: StaticString = #filePath,
                  line: UInt = #line) -> (sut: RemoteVersionNumberLoader,
-                                         remote: HTTPClientSpy) {
-        let remote = HTTPClientSpy()
+                                         remote: VersionFetcherSpy) {
+        let remote = VersionFetcherSpy()
         let sut = RemoteVersionNumberLoader(url: url,
                                             remote: remote)
         

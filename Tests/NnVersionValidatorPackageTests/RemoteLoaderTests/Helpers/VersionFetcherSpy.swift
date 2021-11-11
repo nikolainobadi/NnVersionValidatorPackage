@@ -8,17 +8,17 @@
 import XCTest
 import NnVersionValidatorPackage
 
-class HTTPClientSpy: HTTPClient {
+class VersionFetcherSpy: VersionFetcher {
     
     private var actions = [(url: URL,
-                             completion: (HTTPClient.Result) -> Void)]()
+                             completion: (VersionFetcher.Result) -> Void)]()
 
     var requestedURLs: [URL] {
         return actions.map { $0.url }
     }
 
     func get(from url: URL,
-             completion: @escaping (HTTPClient.Result) -> Void) {
+             completion: @escaping (VersionFetcher.Result) -> Void) {
         
         actions.append((url, completion))
     }
