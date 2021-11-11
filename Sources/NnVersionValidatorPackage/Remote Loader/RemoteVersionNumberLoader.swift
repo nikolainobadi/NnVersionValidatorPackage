@@ -34,8 +34,8 @@ extension RemoteVersionNumberLoader: VersionNumberLoader {
         
         remote.get(from: url) { result in
             switch result {
-            case .success(let (data, response)):
-                completion(VersionNumberMapper.map(data, from: response))
+            case .success(let data):
+                completion(VersionNumberMapper.map(data))
             case .failure:
                 completion(.failure(Error.noConnection))
             }

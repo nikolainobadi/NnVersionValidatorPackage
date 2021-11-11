@@ -37,8 +37,7 @@ class HTTPClientSpy: HTTPClient {
         actions[index].completion(.failure(error))
     }
 
-    func complete(withStatusCode code: Int,
-                  data: Data,
+    func complete(data: Data,
                   at index: Int = 0,
                   file: StaticString = #filePath,
                   line: UInt = #line) {
@@ -49,13 +48,6 @@ class HTTPClientSpy: HTTPClient {
                            file: file, line: line)
         }
 
-        let response = HTTPURLResponse(
-            url: requestedURLs[index],
-            statusCode: code,
-            httpVersion: nil,
-            headerFields: nil
-        )!
-
-        actions[index].completion(.success((data, response)))
+        actions[index].completion(.success(data))
     }
 }

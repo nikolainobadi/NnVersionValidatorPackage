@@ -15,15 +15,12 @@ final class VersionNumberMapper {
         let patchNum: Int
     }
 
-    private static var OK_200: Int { 200 }
-
     private init() {}
 
-    static func map(_ data: Data, from response: HTTPURLResponse) -> VersionNumberLoader.Result {
+    static func map(_ data: Data) -> VersionNumberLoader.Result {
         
         guard
-            let number = try? JSONDecoder().decode(RemoteVersionNumber.self, from: data),
-            response.statusCode == OK_200
+            let number = try? JSONDecoder().decode(RemoteVersionNumber.self, from: data)
         else {
             return .failure(RemoteVersionNumberLoader.Error.invalidData)
         }

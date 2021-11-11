@@ -28,26 +28,12 @@ class RemoteVersionNumberLoaderTests: XCTestCase {
         }
     }
     
-    func test_load_invalidDataWhenResponseNot200() {
-        let (sut, remote) = makeSUT()
-
-        let samples = [199, 201, 300, 400, 500]
-
-        samples.enumerated().forEach { index, code in
-            expect(sut, toCompleteWith: .failure(.invalidData)) {
-                remote.complete(withStatusCode: code,
-                                data: makeJSON(),
-                                at: index)
-            }
-        }
-    }
-    
     func test_load_invalidDataWithInvalidJSON() {
         let (sut, client) = makeSUT()
 
         expect(sut, toCompleteWith: .failure(.invalidData)) {
             let invalidJSON = Data("invalid json".utf8)
-            client.complete(withStatusCode: 200, data: invalidJSON)
+            client.complete(data: invalidJSON)
         }
     }
     
@@ -58,7 +44,7 @@ class RemoteVersionNumberLoaderTests: XCTestCase {
         let versionNumber = makeVersionNumber()
         
         expect(sut, toCompleteWith: .success(versionNumber)) {
-            client.complete(withStatusCode: 200, data: makeJSON())
+            client.complete(data: makeJSON())
         }
     }
 }
